@@ -1,13 +1,13 @@
 import sys
 import pygame
 import random
-from time import sleep
 
 from settings import Settings
 from ship import Ship
 from bullet import Bullet
 from alien import Alien
 from game_stats import GameStats
+from infoborder import Scoreboard
 
 
 class AlienInvasion:
@@ -31,15 +31,15 @@ class AlienInvasion:
 
         self.clock = pygame.time.Clock()
 
-        self.stats = GameStats(self)        # Создание экземпляра для хранения игровой статистики.
+        self.stats = GameStats(self)            # Создание экземпляра для хранения игровой статистики.
+        self.sb = Scoreboard(self)
 
-        self.ship = Ship(self.screen)       # Создание экземпляра для создания корабля.
-        self.bullets = pygame.sprite.Group()# Создание экземпляра
-        self.aliens = pygame.sprite.Group() # Создание экземпляра
-        #self._create_fleet()
+        self.ship = Ship(self.screen)           # Создание экземпляра для создания корабля.
+        self.bullets = pygame.sprite.Group()    # Создание экземпляра
+        self.aliens = pygame.sprite.Group()     # Создание экземпляра
+        # self._create_fleet()
 
-
-    #def _create_fleet(self):
+    # def _create_fleet(self):
         # # Создание пришельца.
         # alien = Alien(self)
         # alien_width = alien.rect.width
@@ -51,13 +51,13 @@ class AlienInvasion:
         #     # Создание пришельца и размещение его в ряду.
         #     self._create_alien(alien_number)
 
-    def _create_alien(self, alien_number):
+    def _create_alien(self):
         # if len(self.bullets) < self.settings.bullets_allowed:
         #     new_bullet = Bullet(self)
         #     self.bullets.add(new_bullet)
         alien = Alien(self)
         alien_width = alien.rect.width
-        alien.x = random.randrange(alien_width, 1100, 100)#alien_width # + 2 * alien_width * 1 # alien_number
+        alien.x = random.randrange(alien_width, 1100, 100)  # alien_width # + 2 * alien_width * 1 # alien_number
         alien.rect.x = alien.x
         if len(self.aliens) < 5:
             self.aliens.add(alien)
@@ -93,11 +93,16 @@ class AlienInvasion:
                 self.bullets.remove(bullet)
 
         collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, True, True)
+        if collisions:
+            self.stats.score += 1
+            self.sb.prep_score()
+            print(self.stats.score)
 
     # Проверка столкновения с кораблем (минус жизнь)
     def _ship_hit(self):
         if pygame.sprite.spritecollideany(self.ship, self.aliens):
             self.stats.ships_left -= 1              # Уменьшение ships_left.
+            self.sb.prep_ships()
             self.aliens.empty()                     # Очистка списков пришельцев и снарядов.
             self.bullets.empty()
             print("Ship hit!!!")
@@ -110,8 +115,9 @@ class AlienInvasion:
         """Проверяет, добрались ли пришельцы до нижнего края экрана."""
         screen_rect = self.screen.get_rect()
         for alien in self.aliens.sprites():
-            if alien.rect.bottom >= screen_rect.bottom: # Происходит то же, что при столкновении с кораблем.
+            if alien.rect.bottom >= screen_rect.bottom:     # Происходит то же, что при столкновении с кораблем.
                 self.stats.ships_left -= 1              # Уменьшение ships_left.
+                self.sb.prep_ships()
                 self.aliens.empty()                     # Очистка списков пришельцев и снарядов.
                 self.bullets.empty()
                 print("Alien is overbottom!!!")
@@ -143,7 +149,6 @@ class AlienInvasion:
         #     self.bullets.empty()
         #     #self._create_fleet()
 
-
     def render(self):
         self.screen.fill(self.bg_color)         # При каждом проходе цикла перерисовывается экран.
 
@@ -151,7 +156,8 @@ class AlienInvasion:
         for bullet in self.bullets.sprites():   # Прорисовка пулек
             bullet.draw_bullet()
         self.aliens.draw(ai.screen)
-        self._create_alien(1)
+        self._create_alien()
+        self.sb.show_score()
 
         # Отображение последнего прорисованного экрана.
         pygame.display.flip()
@@ -163,6 +169,7 @@ class AlienInvasion:
             if self.stats.game_active:
                 self.update_game()
             self.render()
+
 
 if __name__ == '__main__':
     # Создание экземпляра и запуск игры.
